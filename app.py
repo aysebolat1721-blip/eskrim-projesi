@@ -113,7 +113,7 @@ component_html = f"""
         <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Ritmik Ses Sistemi</p>
         <p style="color:#888;margin-bottom:1.5rem;max-width:420px;text-align:center;line-height:1.6;font-size:0.9rem;">
             Yapay zekanın kilitlenmesini önlemek için <strong>%100 Ses Şiddeti</strong> sistemine geçildi.<br><br>
-            <strong>ACİL DURUM:</strong> Eğer tarayıcınız mikrofonu tamamen dondurduysa, komutları sesle vermek yerine <strong>BOŞLUK (SPACE)</strong> tuşuna basarak da tıkır tıkır ilerleyebilirsiniz!
+            <strong>ACİL DURUM:</strong> Mikrofonunuz tamamen donduysa, komutları sesle vermek yerine <strong>EKRANA TIKLAYARAK</strong> (veya telefondan ekrana dokunarak) tıkır tıkır ilerleyebilirsiniz!
         </p>
         <button id="start-btn" onclick="startApp()">🎤 MİKROFONU AÇ</button>
     </div>
@@ -147,7 +147,7 @@ component_html = f"""
         </div>
 
         <div id="instruction">
-            Komutlar arasında en az 1.5 sn bekleyin | Ölçümü durdurmak için <strong>SPACE</strong>
+            Komutlar arasında en az 1.5 sn bekleyin | Ölçümü durdurmak için <strong>Ekrana Tıklayın / SPACE</strong>
         </div>
     </div>
 </div>
@@ -367,16 +367,21 @@ component_html = f"""
             if(e.repeat) return;
             
             if(isRunning) {{
-                // Sporcu kronometreyi durduruyor
                 stopChrono();
             }} else if(!isCooldown) {{
-                // Antrenör manuel olarak komut veriyor (Mikrofon donarsa acil durum butonu)
                 handleLoudSound();
             }}
         }}
     }}, {{passive: false, capture: true}});
     
-    $app.addEventListener('click', () => {{ if(isRunning) stopChrono(); }});
+    // Ekrana tıklama ile de manuel ilerleme (Odaklanma sorunu yaşatmaz)
+    $app.addEventListener('click', () => {{ 
+        if(isRunning) {{
+            stopChrono();
+        }} else if(!isCooldown) {{
+            handleLoudSound();
+        }}
+    }});
     $app.focus();
 
     window.parent.postMessage({{isStreamlitMessage:true,type:'streamlit:componentReady',apiVersion:1}},'*');
