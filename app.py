@@ -239,7 +239,8 @@ component_html = f"""
                     goToStep1();
                 }}
             }} 
-            else if(currentStep === 1) {{
+            
+            if(currentStep === 1) {{
                 // HAZIR Kontrolü
                 const hazirWords = ['hazır', 'hazir', 'hazar', 'hızır', 'hazr'];
                 if(hazirWords.some(w => lower.includes(w))) {{
@@ -267,9 +268,6 @@ component_html = f"""
         $status.style.color='#aaa';
         $recognized.textContent='';
         doFlash('#ffffff',0.1);
-
-        // Eski kelimelerin ("Angart") hafızadan silinmesi için yapay zekayı durdurup başlatıyoruz
-        if(isRecognizing) recognition.stop();
     }}
 
     // ═══════════════════════════════
@@ -286,12 +284,11 @@ component_html = f"""
         $recognized.textContent='';
         doFlash('#FFC107',0.12);
 
-        // Yapay Zekayı durdur, saf sesi dinlemeye başla (Başlayın için)
-        if(isRecognizing) recognition.stop();
+        // Mikrofonu kapatmıyoruz (yoksa Ses dinleyici bozuluyor). 
+        // Sadece ses barını gösterip hemen dinlemeye başlıyoruz.
         $micSec.classList.remove('hidden');
         
-        // Gecikmeyi kaldırdık: Yapay zeka zaten kelimeyi anlarken zaman geçtiği için nefes çoktan bitti.
-        // Anında sesi dinlemeye başlıyoruz ki hızlı söylerse kaçırmasın!
+        // Gecikmeyi kaldırdık: Anında sesi dinlemeye başlıyoruz
         startAllezListener();
     }}
 
