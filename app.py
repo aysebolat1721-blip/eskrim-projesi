@@ -198,9 +198,9 @@ component_html = f"""
         function tick() {{
             analyser.getByteFrequencyData(buf);
             let maxVal=0;
-            for(let i=0;i<buf.length;i++) {
+            for(let i=0;i<buf.length;i++) {{
                 if(buf[i]>maxVal) maxVal=buf[i];
-            }
+            }}
             const avg = maxVal/255; // Artık ortalama değil, TEPE (Peak) ses şiddeti
 
             // Ses çubuğu güncelle
