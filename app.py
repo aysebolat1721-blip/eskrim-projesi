@@ -222,14 +222,14 @@ component_html = f"""
 
             if(currentStep === 0) {{
                 // EN GARDE Kontrolü
-                const engardeWords = ['angart', 'angard', 'angar', 'ankart', 'en garde', 'on garde', 'on gard'];
+                const engardeWords = ['angart', 'angard', 'angar', 'ankart', 'en garde', 'on garde', 'on gard', 'ang'];
                 if(engardeWords.some(w => lower.includes(w))) {{
                     goToStep1();
                 }}
             }} 
             else if(currentStep === 1) {{
                 // PRETS Kontrolü
-                const pretsWords = ['pre', 'pire', 'prêts', 'pret', 'pıre', 'prey'];
+                const pretsWords = ['pre', 'pire', 'prêts', 'pret', 'pıre', 'prey', 'pr', 'pir', 'pır'];
                 if(pretsWords.some(w => lower.includes(w))) {{
                     goToStep2();
                 }}
