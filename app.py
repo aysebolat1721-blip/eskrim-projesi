@@ -29,8 +29,8 @@ with st.sidebar:
     if name:
         st.session_state.athlete_name = name
     st.markdown("### 🎤 Hassasiyet")
-    threshold = st.slider("Ses Eşiği", 0.02, 0.40, 0.10, 0.01,
-                          help="Düşük = daha hassas, Yüksek = daha sert ses gerekir")
+    threshold = st.slider("Ses Eşiği", 0.05, 0.80, 0.25, 0.05,
+                          help="Çok hassas ise sağa (0.50+), zor algılıyorsa sola çekin")
     st.divider()
     if st.session_state.results:
         if st.button("🗑️ Temizle", use_container_width=True):
@@ -197,9 +197,11 @@ component_html = f"""
 
         function tick() {{
             analyser.getByteFrequencyData(buf);
-            let sum=0;
-            for(let i=0;i<buf.length;i++) sum+=buf[i];
-            const avg=sum/buf.length/255;
+            let maxVal=0;
+            for(let i=0;i<buf.length;i++) {
+                if(buf[i]>maxVal) maxVal=buf[i];
+            }
+            const avg = maxVal/255; // Artık ortalama değil, TEPE (Peak) ses şiddeti
 
             // Ses çubuğu güncelle
             $micFill.style.width=Math.min(avg*500,100)+'%';
