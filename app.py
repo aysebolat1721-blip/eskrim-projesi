@@ -186,7 +186,13 @@ component_html = f"""
         initAudioSync();
 
         try {{
-            micStream = await navigator.mediaDevices.getUserMedia({{audio: true}});
+            micStream = await navigator.mediaDevices.getUserMedia({{
+                audio: {{
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: true
+                }}
+            }});
         }} catch(e) {{
             alert('Mikrofon erişimi reddedildi! Tarayıcı ayarlarından izin verin.');
             return;
@@ -368,13 +374,7 @@ component_html = f"""
     document.addEventListener('keydown', (e) => {{
         if(e.code === 'Space' || e.code === 'Enter') {{ 
             e.preventDefault(); 
-            if(e.repeat) return;
-            
-            if(isRunning) {{
-                stopChrono();
-            }} else if(!isCooldown) {{
-                handleLoudSound();
-            }}
+            if(!e.repeat && isRunning) stopChrono();
         }}
     }}, {{passive: false, capture: true}});
     
@@ -411,4 +411,4 @@ if st.session_state.results:
     athlete=st.session_state.athlete_name or "sporcu"
     st.download_button("📥 CSV İndir",csv,f"kilicRT_{athlete}_{ts}.csv","text/csv",use_container_width=True)
 else:
-    st.info("👆 Başlat → 1. Angart → (1.5sn bekle) → 2. Hazır → (1.5sn bekle) → 3. Başlayın! ⏱️ → SPACE")
+    st.info("👆 Başlat → 1. Angart → (0.5sn bekle) → 2. Hazır → (0.5sn bekle) → 3. Başlayın! ⏱️ → SPACE")
