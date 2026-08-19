@@ -149,7 +149,7 @@ component_html = f"""
     let audioCtx=null, analyser=null, micStream=null;
     let currentStep=0, isRunning=false, startTime=0, chronoRAF=null;
     let measureCount=0, allResults=[];
-    let cooldown=false, soundWasLow=true;
+    let cooldown=false;
 
     const $intro=document.getElementById('intro'), $main=document.getElementById('main-screen');
     const $phase=document.getElementById('phase'), $status=document.getElementById('status');
@@ -168,13 +168,7 @@ component_html = f"""
         if(audioCtx.state==='suspended') await audioCtx.resume();
 
         try {{
-            micStream=await navigator.mediaDevices.getUserMedia({{
-                audio: {{
-                    echoCancellation: false,
-                    autoGainControl: false,
-                    noiseSuppression: false
-                }}
-            }});
+            micStream=await navigator.mediaDevices.getUserMedia({{audio:true}});
         }} catch(e) {{
             alert('Mikrofon erişimi reddedildi! Tarayıcı ayarlarından izin verin.');
             return;
@@ -214,21 +208,15 @@ component_html = f"""
             $micFill.style.width=Math.min(avg*500,100)+'%';
             $micFill.classList.toggle('hot',avg>TH);
 
-            // Ses düştüyse bayrak sıfırla (yeni komut algılayabilmek için)
-            // Ortam gürültüsüne karşı daha toleranslı bir sıfırlama eşiği:
-            let resetThresh = Math.min(TH * 0.60, TH - 0.05);
-            if (resetThresh < 0.02) resetThresh = 0.02;
-
-            if(avg < resetThresh) {{
-                soundWasLow=true;
+            // GÖRSEL GÖSTERGE
+            if (!cooldown) {{
                 document.getElementById('ready-dot').style.background = '#00FF88'; // Hazır
             }} else {{
-                document.getElementById('ready-dot').style.background = '#555'; // Ses var
+                document.getElementById('ready-dot').style.background = '#555'; // Bekliyor
             }}
 
-            // SES ALGILANDI → bir sonraki adıma geç
-            if(avg>TH && soundWasLow && !cooldown && !isRunning) {{
-                soundWasLow=false;
+            // SES ALGILANDI (SADECE COOLDOWN YOKKEN)
+            if(avg>TH && !cooldown && !isRunning) {{
                 document.getElementById('ready-dot').style.background = '#555';
                 nextStep();
             }}
@@ -252,7 +240,7 @@ component_html = f"""
             $status.textContent='✅ → Şimdi "Pre!" deyin...';
             $status.style.color='#aaa';
             doFlash('#ffffff',0.1);
-            briefCD(400);
+            briefCD(800);
         }}
         else if(currentStep===1) {{
             // ── 2. SES → PRÊTS ──
@@ -264,7 +252,7 @@ component_html = f"""
             $status.textContent='✅ → Şimdi "Ale!" deyin...';
             $status.style.color='#FFC107';
             doFlash('#FFC107',0.12);
-            briefCD(400);
+            briefCD(800);
         }}
         else if(currentStep===2) {{
             // ── 3. SES → ALLEZ! + KRONOMETREYİ ANINDA BAŞLAT ──
@@ -327,12 +315,13 @@ component_html = f"""
     //  YARDIMCI
     // ═══════════════════════════════
     function resetAll() {{
-        currentStep=0;isRunning=false;soundWasLow=true;
+        currentStep=0;isRunning=false;
         $s1.className='step waiting';$s2.className='step';$s3.className='step';
         $phase.textContent='⚔️';$phase.className='';
         $chrono.textContent='0.000';$chrono.className='';
         $status.textContent='🎤 "Angart!" deyin...';$status.style.color='#555';
         $lastResult.innerHTML='';
+        cooldown=false;
     }}
 
     function briefCD(ms){{cooldown=true;setTimeout(()=>{{cooldown=false;}},ms);}}
