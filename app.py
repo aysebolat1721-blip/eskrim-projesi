@@ -103,7 +103,7 @@ component_html = """
         <div style="font-size:3.5rem;margin-bottom:1rem;">🤖🎙️</div>
         <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Yapay Zeka (Kelime Tanıma) Sistemi</p>
         <p style="color:#888;margin-bottom:1.5rem;max-width:420px;text-align:center;line-height:1.6;font-size:0.9rem;">
-            Sistem sadece siz <strong>"Angart"</strong>, <strong>"Hazır"</strong> ve <strong>"Başlayın"</strong> kelimelerini söylediğinizde sırayla ilerler.
+            Sistem sadece siz <strong>"Angart"</strong>, <strong>"Hazır"</strong> ve <strong>"Başla"</strong> kelimelerini söylediğinizde sırayla ilerler.
         </p>
         <button id="start-btn" onclick="startApp()">🎤 SİSTEMİ BAŞLAT</button>
     </div>
@@ -114,7 +114,7 @@ component_html = """
             <div class="step-arrow">→</div>
             <div class="step" id="s2">HAZIR</div>
             <div class="step-arrow">→</div>
-            <div class="step" id="s3">BAŞLAYIN!</div>
+            <div class="step" id="s3">BAŞLA!</div>
         </div>
         <div id="counter">Ölçüm: <span id="cnt">0</span></div>
 
@@ -131,7 +131,7 @@ component_html = """
         </div>
 
         <div id="instruction">
-            Sırayla <strong>"Angart"</strong>, <strong>"Hazır"</strong> ve <strong>"Başlayın"</strong> deyin. | Ölçümü durdurmak için <strong>SPACE</strong>
+            Sırayla <strong>"Angart"</strong>, <strong>"Hazır"</strong> ve <strong>"Başla"</strong> deyin. | Ölçümü durdurmak için <strong>SPACE</strong>
         </div>
     </div>
 </div>
@@ -240,7 +240,7 @@ component_html = """
         $s3.className = 'step waiting';
         $phase.textContent = '🟡 HAZIR';
         $phase.className = 'prets';
-        $status.textContent = '🟢 "Başlayın" diyebilirsiniz...';
+        $status.textContent = '🟢 "Başla" diyebilirsiniz...';
         $status.style.color = '#00FF88';
         doFlash('#FFC107', 0.15);
         $aiTranscript.textContent = "..."; // Temizle
@@ -252,7 +252,7 @@ component_html = """
         startTime = performance.now();
 
         $s3.className = 'step done';
-        $phase.textContent = '🟢 BAŞLAYIN!';
+        $phase.textContent = '🟢 BAŞLA!';
         $phase.className = 'allez';
         $status.textContent = '⏱️ SPACE BAS!';
         $status.style.color = '#00FF88';
