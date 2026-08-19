@@ -28,7 +28,9 @@ with st.sidebar:
     name = st.text_input("Ad Soyad", value=st.session_state.athlete_name)
     if name:
         st.session_state.athlete_name = name
-    st.markdown("### 🎤 Hassasiyet")
+    
+    st.markdown("### 🎤 'Ale' Komutu Hassasiyeti")
+    st.caption("İlk iki komut (Angart, Pre) yapay zeka ile anlaşıldıktan sonra, kronometreyi anında başlatacak 'Ale' sesinin yüksekliği.")
     threshold = st.slider("Ses Eşiği", 0.05, 0.80, 0.25, 0.05,
                           help="Çok hassas ise sağa (0.50+), zor algılıyorsa sola çekin")
     st.divider()
@@ -39,7 +41,7 @@ with st.sidebar:
 
 st.markdown("""<div style='text-align:center; padding: 0.3rem 0 0.8rem;'>
     <h1 style='font-size: 2rem; margin:0;'>⚔️ Kılıç Reaksiyon Kronometresi</h1>
-    <p style='color: #666; font-size: 0.85rem;'>Anlık ses algılama · Sıfır gecikme</p>
+    <p style='color: #666; font-size: 0.85rem;'>Hibrit Sistem (Yapay Zeka Ses Tanıma + Anlık Kronometre)</p>
 </div>""", unsafe_allow_html=True)
 
 component_html = f"""
@@ -60,6 +62,7 @@ component_html = f"""
     #phase.stopped{{color:#00AAFF;text-shadow:0 0 40px rgba(0,170,255,0.3);}}
 
     #status{{font-size:1rem;font-weight:600;color:#555;margin-top:0.8rem;letter-spacing:0.08em;transition:color 0.1s;}}
+    #recognized-text{{font-size:1.2rem; font-style:italic; color:#888; margin-top:0.5rem; height:1.5rem;}}
 
     #chrono{{font-family:'JetBrains Mono',monospace;font-size:5.5rem;font-weight:700;color:#222;margin-top:0.8rem;transition:color 0.1s,text-shadow 0.15s;}}
     #chrono.running{{color:#00FF88;text-shadow:0 0 60px rgba(0,255,136,0.35);}}
@@ -105,13 +108,13 @@ component_html = f"""
     <div id="flash"></div>
 
     <div id="intro">
-        <div style="font-size:3.5rem;margin-bottom:1rem;">🎤⚔️</div>
-        <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Anlık Ses Algılama</p>
+        <div style="font-size:3.5rem;margin-bottom:1rem;">🎤🤖</div>
+        <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Hibrit Sistem: Yapay Zeka + Sıfır Gecikme</p>
         <p style="color:#888;margin-bottom:1.5rem;max-width:400px;text-align:center;line-height:1.8;font-size:0.9rem;">
-            Antrenör sırayla komut verir:<br>
-            <strong style="color:#fff">1. ses</strong> → EN GARDE<br>
-            <strong style="color:#FFC107">2. ses</strong> → PRÊTS<br>
-            <strong style="color:#00FF88">3. ses</strong> → ALLEZ! ⏱️ kronometre başlar<br>
+            Yanlış atlamaları önlemek için ilk iki komutu yapay zeka dinler:<br>
+            <strong style="color:#fff">1. "Angart!"</strong> → (Yapay zeka anlar)<br>
+            <strong style="color:#FFC107">2. "Pre!"</strong> → (Yapay zeka anlar)<br>
+            <strong style="color:#00FF88">3. "Ale!"</strong> → ⏱️ Ses anında ölçülüp kronometre fırlar<br>
             <strong style="color:#00AAFF">SPACE</strong> → durdur
         </p>
         <button id="start-btn" onclick="startApp()">🎤 BAŞLAT</button>
@@ -128,13 +131,14 @@ component_html = f"""
         <div id="counter">Ölçüm: <span id="cnt">0</span></div>
 
         <div id="phase">⚔️</div>
-        <div id="status">🎤 "Angart!" deyin...</div>
+        <div id="status">🎤 YZ Dinliyor: "Angart!" deyin...</div>
+        <div id="recognized-text"></div>
         <div id="chrono">0.000</div>
         <div id="unit">saniye</div>
         <div id="last-result"></div>
 
-        <div id="mic-sec">
-            <div id="mic-lbl">🎤 Ses Seviyesi <span id="ready-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#555;margin-left:5px;" title="Yeni komut duymaya hazır"></span> <span id="vol-text" style="float:right; font-family:monospace; color:#aaa;">0.00</span></div>
+        <div id="mic-sec" class="hidden">
+            <div id="mic-lbl">🎤 "Ale!" Sesi Bekleniyor <span id="vol-text" style="float:right; font-family:monospace; color:#aaa;">0.00</span></div>
             <div id="mic-bg"><div id="mic-fill"></div></div>
         </div>
 
@@ -149,20 +153,31 @@ component_html = f"""
     let audioCtx=null, analyser=null, micStream=null;
     let currentStep=0, isRunning=false, startTime=0, chronoRAF=null;
     let measureCount=0, allResults=[];
-    let cooldown=false;
+    
+    // Web Speech API
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isRecognizing = false;
 
     const $intro=document.getElementById('intro'), $main=document.getElementById('main-screen');
     const $phase=document.getElementById('phase'), $status=document.getElementById('status');
+    const $recognized=document.getElementById('recognized-text');
     const $chrono=document.getElementById('chrono');
     const $lastResult=document.getElementById('last-result'), $cnt=document.getElementById('cnt');
     const $flash=document.getElementById('flash'), $app=document.getElementById('app');
     const $s1=document.getElementById('s1'), $s2=document.getElementById('s2'), $s3=document.getElementById('s3');
-    const $micFill=document.getElementById('mic-fill');
+    const $micSec=document.getElementById('mic-sec'), $micFill=document.getElementById('mic-fill');
 
     // ═══════════════════════════════
     //  BAŞLAT
     // ═══════════════════════════════
     async function startApp() {{
+        if(!SpeechRecognition) {{
+            alert("Tarayıcınız ses tanımayı (Web Speech API) desteklemiyor. Lütfen Chrome kullanın.");
+            return;
+        }}
+
+        // Audio Context (Allez komutu için)
         const AC=window.AudioContext||window.webkitAudioContext;
         audioCtx=new AC();
         if(audioCtx.state==='suspended') await audioCtx.resume();
@@ -177,104 +192,144 @@ component_html = f"""
         const source=audioCtx.createMediaStreamSource(micStream);
         analyser=audioCtx.createAnalyser();
         analyser.fftSize=256;
-        analyser.smoothingTimeConstant=0.15;
         source.connect(analyser);
+
+        // Speech Recognition Setup (Angart & Pre için)
+        recognition = new SpeechRecognition();
+        recognition.lang = 'tr-TR';
+        recognition.continuous = true;
+        recognition.interimResults = true; // Hızlı tepki için geçici sonuçları da al
+
+        recognition.onstart = function() {{ isRecognizing = true; }};
+        recognition.onend = function() {{ 
+            isRecognizing = false;
+            // Eğer hala 0 veya 1. adımda isek, tanımayı otomatik yeniden başlat
+            if(currentStep < 2) {{
+                try {{ recognition.start(); }} catch(e) {{}}
+            }}
+        }};
+
+        recognition.onresult = function(event) {{
+            if(currentStep >= 2) return; // 2. adımdan sonra sese bakılır, kelimeye değil.
+
+            let transcript = '';
+            for(let i=event.resultIndex; i<event.results.length; i++) {{
+                transcript += event.results[i][0].transcript;
+            }}
+            
+            const lower = transcript.toLowerCase().trim();
+            $recognized.textContent = '"' + lower + '"'; // Ekrana söylenen kelimeyi yaz (debugging)
+
+            if(currentStep === 0) {{
+                // EN GARDE Kontrolü
+                const engardeWords = ['angart', 'angard', 'angar', 'ankart', 'en garde', 'on garde', 'on gard'];
+                if(engardeWords.some(w => lower.includes(w))) {{
+                    goToStep1();
+                }}
+            }} 
+            else if(currentStep === 1) {{
+                // PRETS Kontrolü
+                const pretsWords = ['pre', 'pire', 'prêts', 'pret', 'pıre', 'prey'];
+                if(pretsWords.some(w => lower.includes(w))) {{
+                    goToStep2();
+                }}
+            }}
+        }};
 
         $intro.classList.add('hidden');
         $main.classList.remove('hidden');
         $app.focus();
         resetAll();
-        audioLoop();
     }}
 
     // ═══════════════════════════════
-    //  ANLIK SES ALGILAMA DÖNGÜSÜ
-    //  requestAnimationFrame = ~16ms/tick
-    //  Ses eşiği aşıldığı AN tetiklenir
+    //  ADIM 1: EN GARDE (Yapay Zeka Onayı)
     // ═══════════════════════════════
-    function audioLoop() {{
+    function goToStep1() {{
+        currentStep = 1;
+        $s1.className='step done';
+        $s2.className='step waiting';
+        $phase.textContent='⚔️ EN GARDE';
+        $phase.className='engarde';
+        $status.textContent='✅ YZ Onayladı → Şimdi "Pre!" deyin...';
+        $status.style.color='#aaa';
+        $recognized.textContent='';
+        doFlash('#ffffff',0.1);
+    }}
+
+    // ═══════════════════════════════
+    //  ADIM 2: PRETS (Yapay Zeka Onayı) -> SES DİNLEMEYE GEÇİŞ
+    // ═══════════════════════════════
+    function goToStep2() {{
+        currentStep = 2;
+        $s2.className='step done';
+        $s3.className='step ready';
+        $phase.textContent='🟡 PRÊTS';
+        $phase.className='prets';
+        $status.textContent='✅ YZ Onayladı → Şimdi bağırarak "Ale!" deyin (Anında Tetiklenir)';
+        $status.style.color='#FFC107';
+        $recognized.textContent='';
+        doFlash('#FFC107',0.12);
+
+        // Yapay Zekayı durdur, saf sesi dinlemeye başla (Allez için)
+        if(isRecognizing) recognition.stop();
+        $micSec.classList.remove('hidden');
+        setTimeout(startAllezListener, 500); // 500ms bekle, kullanıcının "Pre" nefesi bitsin
+    }}
+
+    // ═══════════════════════════════
+    //  ADIM 3 BEKLEYİŞİ: SAF SES ŞİDDETİ (ALLEZ İÇİN)
+    // ═══════════════════════════════
+    let audioRAF = null;
+    function startAllezListener() {{
         const buf=new Uint8Array(analyser.frequencyBinCount);
 
         function tick() {{
+            if(currentStep !== 2) return; // Sadece 2. adımda çalışır
+
             analyser.getByteFrequencyData(buf);
             let maxVal=0;
             for(let i=0;i<buf.length;i++) {{
                 if(buf[i]>maxVal) maxVal=buf[i];
             }}
-            const avg = maxVal/255; // Artık ortalama değil, TEPE (Peak) ses şiddeti
+            const avg = maxVal/255;
             document.getElementById('vol-text').textContent = avg.toFixed(2);
 
-            // Ses çubuğu güncelle
             $micFill.style.width=Math.min(avg*500,100)+'%';
             $micFill.classList.toggle('hot',avg>TH);
 
-            // GÖRSEL GÖSTERGE
-            if (!cooldown) {{
-                document.getElementById('ready-dot').style.background = '#00FF88'; // Hazır
-            }} else {{
-                document.getElementById('ready-dot').style.background = '#555'; // Bekliyor
+            if(avg > TH && !isRunning) {{
+                // SES DUYULDU -> ANINDA KRONOMETRE
+                goToStep3();
+                return;
             }}
-
-            // SES ALGILANDI (SADECE COOLDOWN YOKKEN)
-            if(avg>TH && !cooldown && !isRunning) {{
-                document.getElementById('ready-dot').style.background = '#555';
-                nextStep();
-            }}
-
-            requestAnimationFrame(tick);
+            audioRAF = requestAnimationFrame(tick);
         }}
         tick();
     }}
 
     // ═══════════════════════════════
-    //  ADIM İLERLE
+    //  ADIM 3: ALLEZ & KRONOMETRE
     // ═══════════════════════════════
-    function nextStep() {{
-        if(currentStep===0) {{
-            // ── 1. SES → EN GARDE ──
-            currentStep=1;
-            $s1.className='step done';
-            $s2.className='step waiting';
-            $phase.textContent='⚔️ EN GARDE';
-            $phase.className='engarde';
-            $status.textContent='✅ → Şimdi "Pre!" deyin...';
-            $status.style.color='#aaa';
-            doFlash('#ffffff',0.1);
-            briefCD(800);
-        }}
-        else if(currentStep===1) {{
-            // ── 2. SES → PRÊTS ──
-            currentStep=2;
-            $s2.className='step done';
-            $s3.className='step ready';
-            $phase.textContent='🟡 PRÊTS';
-            $phase.className='prets';
-            $status.textContent='✅ → Şimdi "Ale!" deyin...';
-            $status.style.color='#FFC107';
-            doFlash('#FFC107',0.12);
-            briefCD(800);
-        }}
-        else if(currentStep===2) {{
-            // ── 3. SES → ALLEZ! + KRONOMETREYİ ANINDA BAŞLAT ──
-            currentStep=3;
-            isRunning=true;
-            startTime=performance.now();
+    function goToStep3() {{
+        currentStep = 3;
+        isRunning = true;
+        startTime = performance.now();
 
-            $s3.className='step done';
-            $phase.textContent='🟢 ALLEZ!';
-            $phase.className='allez';
-            $status.textContent='⏱️ SPACE BAS!';
-            $status.style.color='#00FF88';
-            $chrono.className='running';
-            doFlash('#00FF88',0.2);
+        $s3.className='step done';
+        $phase.textContent='🟢 ALLEZ!';
+        $phase.className='allez';
+        $status.textContent='⏱️ SPACE BAS!';
+        $status.style.color='#00FF88';
+        $chrono.className='running';
+        doFlash('#00FF88',0.2);
 
-            function chronoTick() {{
-                if(!isRunning) return;
-                $chrono.textContent=((performance.now()-startTime)/1000).toFixed(3);
-                chronoRAF=requestAnimationFrame(chronoTick);
-            }}
-            chronoTick();
+        function chronoTick() {{
+            if(!isRunning) return;
+            $chrono.textContent=((performance.now()-startTime)/1000).toFixed(3);
+            chronoRAF=requestAnimationFrame(chronoTick);
         }}
+        chronoTick();
     }}
 
     // ═══════════════════════════════
@@ -292,7 +347,7 @@ component_html = f"""
         $chrono.className='stopped';
         $phase.textContent='✅ '+ms+' ms';
         $phase.className='stopped';
-        $status.textContent='Kaydedildi!';
+        $status.textContent='Kaydedildi! 2 sn sonra yeni döngü...';
         $status.style.color='#00AAFF';
         doFlash('#00AAFF',0.15);
 
@@ -307,24 +362,30 @@ component_html = f"""
             value:{{status:'RESULT',count:measureCount,reaction_time_ms:parseFloat(ms),all_results:allResults}}
         }},'*');
 
-        cooldown=true;
-        setTimeout(()=>{{cooldown=false;resetAll();}},2000);
+        setTimeout(resetAll, 2000);
     }}
 
     // ═══════════════════════════════
-    //  YARDIMCI
+    //  YARDIMCI / RESET
     // ═══════════════════════════════
     function resetAll() {{
-        currentStep=0;isRunning=false;
-        $s1.className='step waiting';$s2.className='step';$s3.className='step';
-        $phase.textContent='⚔️';$phase.className='';
-        $chrono.textContent='0.000';$chrono.className='';
-        $status.textContent='🎤 "Angart!" deyin...';$status.style.color='#555';
+        currentStep=0;
+        isRunning=false;
+        $s1.className='step waiting'; $s2.className='step'; $s3.className='step';
+        $phase.textContent='⚔️'; $phase.className='';
+        $chrono.textContent='0.000'; $chrono.className='';
+        $status.textContent='🎤 YZ Dinliyor: "Angart!" deyin...'; $status.style.color='#555';
+        $recognized.textContent='';
         $lastResult.innerHTML='';
-        cooldown=false;
-    }}
+        $micSec.classList.add('hidden'); // Ses barını gizle
+        $micFill.style.width='0%';
+        document.getElementById('vol-text').textContent='0.00';
 
-    function briefCD(ms){{cooldown=true;setTimeout(()=>{{cooldown=false;}},ms);}}
+        // Yapay zekayı tekrar başlat (kapalıysa)
+        if(!isRecognizing && recognition) {{
+            try {{ recognition.start(); }} catch(e) {{}}
+        }}
+    }}
 
     function doFlash(hex,a){{
         const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
@@ -369,4 +430,4 @@ if st.session_state.results:
     athlete=st.session_state.athlete_name or "sporcu"
     st.download_button("📥 CSV İndir",csv,f"kilicRT_{athlete}_{ts}.csv","text/csv",use_container_width=True)
 else:
-    st.info("👆 Başlat → 1. ses: En Garde → 2. ses: Prêts → 3. ses: Allez! ⏱️ → SPACE")
+    st.info("👆 Başlat → 1. yapay zeka: Angart → 2. yapay zeka: Pre → 3. anlık ses: Ale! ⏱️ → SPACE")
