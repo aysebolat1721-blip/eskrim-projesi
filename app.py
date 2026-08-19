@@ -200,12 +200,25 @@ component_html = f"""
         recognition.continuous = true;
         recognition.interimResults = true; // Hızlı tepki için geçici sonuçları da al
 
-        recognition.onstart = function() {{ isRecognizing = true; }};
+        recognition.onstart = function() {{ 
+            isRecognizing = true; 
+            $status.style.color='#555';
+            $status.textContent='🎤 YZ Dinliyor: "' + (currentStep===0 ? 'Angart' : 'Pre') + '!" deyin...';
+        }};
+        
+        recognition.onerror = function(event) {{
+            console.error("Speech error: " + event.error);
+            $recognized.textContent = "Hata: " + event.error;
+            isRecognizing = false;
+        }};
+
         recognition.onend = function() {{ 
             isRecognizing = false;
             // Eğer hala 0 veya 1. adımda isek, tanımayı otomatik yeniden başlat
             if(currentStep < 2) {{
-                try {{ recognition.start(); }} catch(e) {{}}
+                setTimeout(() => {{
+                    try {{ recognition.start(); }} catch(e) {{}}
+                }}, 250);
             }}
         }};
 
