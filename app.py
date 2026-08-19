@@ -103,7 +103,7 @@ component_html = """
         <div style="font-size:3.5rem;margin-bottom:1rem;">🤖🎙️</div>
         <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Yapay Zeka (Kelime Tanıma) Sistemi</p>
         <p style="color:#888;margin-bottom:1.5rem;max-width:420px;text-align:center;line-height:1.6;font-size:0.9rem;">
-            Sistem sadece siz <strong>"Angart"</strong>, <strong>"Hazır"</strong> ve <strong>"Başlayın"</strong> kelimelerini söylediğinizde sırayla ilerler.<br>Arka plan gürültüsünde kendi kendine atlamaz.
+            Sistem sadece siz <strong>"Angart"</strong>, <strong>"Hazır"</strong> ve <strong>"Başlayın"</strong> kelimelerini söylediğinizde sırayla ilerler.
         </p>
         <button id="start-btn" onclick="startApp()">🎤 SİSTEMİ BAŞLAT</button>
     </div>
@@ -369,4 +369,4 @@ if st.session_state.results:
     athlete=st.session_state.athlete_name or "sporcu"
     st.download_button("📥 CSV İndir",csv,f"kilicAI_{athlete}_{ts}.csv","text/csv",use_container_width=True)
 else:
-    st.info("Sistem sadece kelimeleri söylediğinizde ilerler. Kendi kendine atlamaz.")
+    st.info("👆 Sistemi başlatın, ardından sırayla komutları verin.")
