@@ -134,7 +134,7 @@ component_html = f"""
         <div id="last-result"></div>
 
         <div id="mic-sec">
-            <div id="mic-lbl">🎤 Ses Seviyesi</div>
+            <div id="mic-lbl">🎤 Ses Seviyesi <span id="ready-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#555;margin-left:5px;" title="Yeni komut duymaya hazır"></span></div>
             <div id="mic-bg"><div id="mic-fill"></div></div>
         </div>
 
@@ -168,7 +168,13 @@ component_html = f"""
         if(audioCtx.state==='suspended') await audioCtx.resume();
 
         try {{
-            micStream=await navigator.mediaDevices.getUserMedia({{audio:true}});
+            micStream=await navigator.mediaDevices.getUserMedia({{
+                audio: {{
+                    echoCancellation: false,
+                    autoGainControl: false,
+                    noiseSuppression: false
+                }}
+            }});
         }} catch(e) {{
             alert('Mikrofon erişimi reddedildi! Tarayıcı ayarlarından izin verin.');
             return;
@@ -208,11 +214,17 @@ component_html = f"""
             $micFill.classList.toggle('hot',avg>TH);
 
             // Ses düştüyse bayrak sıfırla (yeni komut algılayabilmek için)
-            if(avg<TH*0.75) soundWasLow=true;
+            if(avg<TH*0.80) {{
+                soundWasLow=true;
+                document.getElementById('ready-dot').style.background = '#00FF88'; // Hazır
+            }} else {{
+                document.getElementById('ready-dot').style.background = '#555'; // Ses var
+            }}
 
             // SES ALGILANDI → bir sonraki adıma geç
             if(avg>TH && soundWasLow && !cooldown && !isRunning) {{
                 soundWasLow=false;
+                document.getElementById('ready-dot').style.background = '#555';
                 nextStep();
             }}
 
