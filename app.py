@@ -113,7 +113,7 @@ component_html = f"""
         <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Ritmik Ses Sistemi</p>
         <p style="color:#888;margin-bottom:1.5rem;max-width:420px;text-align:center;line-height:1.6;font-size:0.9rem;">
             Yapay zekanın kilitlenmesini önlemek için <strong>%100 Ses Şiddeti</strong> sistemine geçildi.<br><br>
-            Antrenörün "Angart", "Hazır" ve "Başlayın" komutları arasında doğal olarak en az <strong>1.5 saniye</strong> beklemesi gereklidir. (Kendi kendine atlamayı bu bekleme süresi engeller).
+            <strong>ACİL DURUM:</strong> Eğer tarayıcınız mikrofonu tamamen dondurduysa, komutları sesle vermek yerine <strong>BOŞLUK (SPACE)</strong> tuşuna basarak da tıkır tıkır ilerleyebilirsiniz!
         </p>
         <button id="start-btn" onclick="startApp()">🎤 MİKROFONU AÇ</button>
     </div>
@@ -362,7 +362,18 @@ component_html = f"""
     }}
 
     document.addEventListener('keydown', (e) => {{
-        if(e.code === 'Space' || e.code === 'Enter') {{ e.preventDefault(); if(!e.repeat) stopChrono(); }}
+        if(e.code === 'Space' || e.code === 'Enter') {{ 
+            e.preventDefault(); 
+            if(e.repeat) return;
+            
+            if(isRunning) {{
+                // Sporcu kronometreyi durduruyor
+                stopChrono();
+            }} else if(!isCooldown) {{
+                // Antrenör manuel olarak komut veriyor (Mikrofon donarsa acil durum butonu)
+                handleLoudSound();
+            }}
+        }}
     }}, {{passive: false, capture: true}});
     
     $app.addEventListener('click', () => {{ if(isRunning) stopChrono(); }});
