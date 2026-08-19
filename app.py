@@ -112,8 +112,7 @@ component_html = f"""
         <div style="font-size:3.5rem;margin-bottom:1rem;">🎙️⚡</div>
         <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Ritmik Ses Sistemi</p>
         <p style="color:#888;margin-bottom:1.5rem;max-width:420px;text-align:center;line-height:1.6;font-size:0.9rem;">
-            Antrenörün "Angart", "Hazır" ve "Başlayın" komutları arasında doğal olarak en az <strong>Yarım Saniye (0.5 sn)</strong> beklemesi gereklidir. (Kendi kendine atlamayı bu bekleme süresi engeller).<br><br>
-            <strong>ACİL DURUM:</strong> Mikrofonunuz tamamen donduysa, komutları sesle vermek yerine <strong>EKRANA TIKLAYARAK</strong> (veya telefondan ekrana dokunarak) tıkır tıkır ilerleyebilirsiniz!
+            Antrenörün "Angart", "Hazır" ve "Başlayın" komutları arasında doğal olarak en az <strong>Yarım Saniye (0.5 sn)</strong> beklemesi gereklidir. (Kendi kendine atlamayı bu bekleme süresi engeller).
         </p>
         <button id="start-btn" onclick="initAudioSync(); startApp();">🎤 MİKROFONU AÇ</button>
     </div>
@@ -385,14 +384,7 @@ component_html = f"""
         }}
     }}, {{passive: false, capture: true}});
     
-    // Ekrana tıklama ile de manuel ilerleme (Odaklanma sorunu yaşatmaz)
-    $app.addEventListener('click', () => {{ 
-        if(isRunning) {{
-            stopChrono();
-        }} else if(!isCooldown) {{
-            handleLoudSound();
-        }}
-    }});
+    $app.addEventListener('click', () => {{ if(isRunning) stopChrono(); }});
     $app.focus();
 
     window.parent.postMessage({{isStreamlitMessage:true,type:'streamlit:componentReady',apiVersion:1}},'*');
