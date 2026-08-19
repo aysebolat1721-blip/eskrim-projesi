@@ -29,9 +29,9 @@ with st.sidebar:
     if name:
         st.session_state.athlete_name = name
     
-    st.markdown("### 🎤 'Ale' Komutu Hassasiyeti")
-    st.caption("İlk iki komut (Angart, Pre) yapay zeka ile anlaşıldıktan sonra, kronometreyi anında başlatacak 'Ale' sesinin yüksekliği.")
-    threshold = st.slider("Ses Eşiği", 0.05, 0.80, 0.25, 0.05,
+    st.markdown("### 🎤 'Başlayın' Komutu Hassasiyeti")
+    st.caption("İlk iki komut yapay zeka ile anlaşıldıktan sonra, kronometreyi başlatacak sesin yüksekliği.")
+    threshold = st.slider("Ses Eşiği", 0.05, 0.80, 0.15, 0.05,
                           help="Çok hassas ise sağa (0.50+), zor algılıyorsa sola çekin")
     st.divider()
     if st.session_state.results:
@@ -290,7 +290,10 @@ component_html = f"""
         // Yapay Zekayı durdur, saf sesi dinlemeye başla (Başlayın için)
         if(isRecognizing) recognition.stop();
         $micSec.classList.remove('hidden');
-        setTimeout(startAllezListener, 500); // 500ms bekle, kullanıcının nefesi bitsin
+        
+        // Gecikmeyi kaldırdık: Yapay zeka zaten kelimeyi anlarken zaman geçtiği için nefes çoktan bitti.
+        // Anında sesi dinlemeye başlıyoruz ki hızlı söylerse kaçırmasın!
+        startAllezListener();
     }}
 
     // ═══════════════════════════════
