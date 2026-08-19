@@ -208,7 +208,7 @@ component_html = f"""
             $micFill.classList.toggle('hot',avg>TH);
 
             // Ses düştüyse bayrak sıfırla (yeni komut algılayabilmek için)
-            if(avg<TH*0.3) soundWasLow=true;
+            if(avg<TH*0.75) soundWasLow=true;
 
             // SES ALGILANDI → bir sonraki adıma geç
             if(avg>TH && soundWasLow && !cooldown && !isRunning) {{
