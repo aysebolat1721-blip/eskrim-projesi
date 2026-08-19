@@ -113,8 +113,8 @@ component_html = f"""
         <p style="color:#888;margin-bottom:1.5rem;max-width:400px;text-align:center;line-height:1.8;font-size:0.9rem;">
             Yanlış atlamaları önlemek için ilk iki komutu yapay zeka dinler:<br>
             <strong style="color:#fff">1. "Angart!"</strong> → (Yapay zeka anlar)<br>
-            <strong style="color:#FFC107">2. "Pre!"</strong> → (Yapay zeka anlar)<br>
-            <strong style="color:#00FF88">3. "Ale!"</strong> → ⏱️ Ses anında ölçülüp kronometre fırlar<br>
+            <strong style="color:#FFC107">2. "Hazır!"</strong> → (Yapay zeka anlar)<br>
+            <strong style="color:#00FF88">3. "Başla!"</strong> → ⏱️ Ses anında ölçülüp kronometre fırlar<br>
             <strong style="color:#00AAFF">SPACE</strong> → durdur
         </p>
         <button id="start-btn" onclick="startApp()">🎤 BAŞLAT</button>
@@ -124,9 +124,9 @@ component_html = f"""
         <div id="steps">
             <div class="step waiting" id="s1">EN GARDE</div>
             <div class="step-arrow">→</div>
-            <div class="step" id="s2">PRÊTS</div>
+            <div class="step" id="s2">HAZIR</div>
             <div class="step-arrow">→</div>
-            <div class="step" id="s3">ALLEZ!</div>
+            <div class="step" id="s3">BAŞLA!</div>
         </div>
         <div id="counter">Ölçüm: <span id="cnt">0</span></div>
 
@@ -138,12 +138,12 @@ component_html = f"""
         <div id="last-result"></div>
 
         <div id="mic-sec" class="hidden">
-            <div id="mic-lbl">🎤 "Ale!" Sesi Bekleniyor <span id="vol-text" style="float:right; font-family:monospace; color:#aaa;">0.00</span></div>
+            <div id="mic-lbl">🎤 "Başla!" Sesi Bekleniyor <span id="vol-text" style="float:right; font-family:monospace; color:#aaa;">0.00</span></div>
             <div id="mic-bg"><div id="mic-fill"></div></div>
         </div>
 
         <div id="instruction">
-            Antrenör: <strong>Angart!</strong> → <strong>Pre!</strong> → <strong>Ale!</strong> | Sporcu: <strong>SPACE</strong>
+            Antrenör: <strong>Angart!</strong> → <strong>Hazır!</strong> → <strong>Başla!</strong> | Sporcu: <strong>SPACE</strong>
         </div>
     </div>
 </div>
@@ -203,7 +203,7 @@ component_html = f"""
         recognition.onstart = function() {{ 
             isRecognizing = true; 
             $status.style.color='#555';
-            $status.textContent='🎤 YZ Dinliyor: "' + (currentStep===0 ? 'Angart' : 'Pre') + '!" deyin...';
+            $status.textContent='🎤 YZ Dinliyor: "' + (currentStep===0 ? 'Angart' : 'Hazır') + '!" deyin...';
         }};
         
         recognition.onerror = function(event) {{
@@ -241,9 +241,9 @@ component_html = f"""
                 }}
             }} 
             else if(currentStep === 1) {{
-                // PRETS Kontrolü
-                const pretsWords = ['pre', 'pire', 'prêts', 'pret', 'pıre', 'prey', 'pr', 'pir', 'pır', 'bre', 'bire', 'kre', 'püre', 'pe', 're'];
-                if(pretsWords.some(w => lower.includes(w))) {{
+                // HAZIR Kontrolü
+                const hazirWords = ['hazır', 'hazir', 'hazar', 'hızır', 'hazr'];
+                if(hazirWords.some(w => lower.includes(w))) {{
                     goToStep2();
                 }}
             }}
@@ -264,7 +264,7 @@ component_html = f"""
         $s2.className='step waiting';
         $phase.textContent='⚔️ EN GARDE';
         $phase.className='engarde';
-        $status.textContent='✅ YZ Onayladı → Şimdi "Pre!" deyin...';
+        $status.textContent='✅ YZ Onayladı → Şimdi "Hazır!" deyin...';
         $status.style.color='#aaa';
         $recognized.textContent='';
         doFlash('#ffffff',0.1);
@@ -274,23 +274,23 @@ component_html = f"""
     }}
 
     // ═══════════════════════════════
-    //  ADIM 2: PRETS (Yapay Zeka Onayı) -> SES DİNLEMEYE GEÇİŞ
+    //  ADIM 2: HAZIR (Yapay Zeka Onayı) -> SES DİNLEMEYE GEÇİŞ
     // ═══════════════════════════════
     function goToStep2() {{
         currentStep = 2;
         $s2.className='step done';
         $s3.className='step ready';
-        $phase.textContent='🟡 PRÊTS';
+        $phase.textContent='🟡 HAZIR';
         $phase.className='prets';
-        $status.textContent='✅ YZ Onayladı → Şimdi bağırarak "Ale!" deyin (Anında Tetiklenir)';
+        $status.textContent='✅ YZ Onayladı → Şimdi bağırarak "Başla!" deyin (Anında Tetiklenir)';
         $status.style.color='#FFC107';
         $recognized.textContent='';
         doFlash('#FFC107',0.12);
 
-        // Yapay Zekayı durdur, saf sesi dinlemeye başla (Allez için)
+        // Yapay Zekayı durdur, saf sesi dinlemeye başla (Başla için)
         if(isRecognizing) recognition.stop();
         $micSec.classList.remove('hidden');
-        setTimeout(startAllezListener, 500); // 500ms bekle, kullanıcının "Pre" nefesi bitsin
+        setTimeout(startAllezListener, 500); // 500ms bekle, kullanıcının nefesi bitsin
     }}
 
     // ═══════════════════════════════
@@ -333,7 +333,7 @@ component_html = f"""
         startTime = performance.now();
 
         $s3.className='step done';
-        $phase.textContent='🟢 ALLEZ!';
+        $phase.textContent='🟢 BAŞLA!';
         $phase.className='allez';
         $status.textContent='⏱️ SPACE BAS!';
         $status.style.color='#00FF88';
@@ -446,4 +446,4 @@ if st.session_state.results:
     athlete=st.session_state.athlete_name or "sporcu"
     st.download_button("📥 CSV İndir",csv,f"kilicRT_{athlete}_{ts}.csv","text/csv",use_container_width=True)
 else:
-    st.info("👆 Başlat → 1. yapay zeka: Angart → 2. yapay zeka: Pre → 3. anlık ses: Ale! ⏱️ → SPACE")
+    st.info("👆 Başlat → 1. yapay zeka: Angart → 2. yapay zeka: Hazır → 3. anlık ses: Başla! ⏱️ → SPACE")
