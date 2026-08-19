@@ -99,6 +99,9 @@ component_html = f"""
         background:linear-gradient(135deg,#00FF88,#00CC6A);color:#000;border:none;border-radius:16px;cursor:pointer;animation:pulse 2s ease-in-out infinite;}}
     #start-btn:hover{{transform:scale(1.05);box-shadow:0 0 40px rgba(0,255,136,0.3);}}
 
+    #mic-selector-container {{ margin-bottom: 1.5rem; }}
+    #mic-select {{ padding: 0.6rem; border-radius: 8px; background: #222; color: #fff; border: 1px solid #444; font-family: 'Inter', sans-serif; font-size: 0.9rem; min-width: 250px; }}
+
     #flash{{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;opacity:0;transition:opacity 0.1s;}}
     .hidden{{display:none !important;}}
     @keyframes pulse{{0%,100%{{transform:scale(1);}}50%{{transform:scale(1.03);}}}}
@@ -112,9 +115,17 @@ component_html = f"""
         <div style="font-size:3.5rem;margin-bottom:1rem;">🎙️⚡</div>
         <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Ritmik Ses Sistemi</p>
         <p style="color:#888;margin-bottom:1.5rem;max-width:420px;text-align:center;line-height:1.6;font-size:0.9rem;">
-            Antrenörün "Angart", "Hazır" ve "Başlayın" komutları arasında doğal olarak en az <strong>Yarım Saniye (0.5 sn)</strong> beklemesi gereklidir. (Kendi kendine atlamayı bu bekleme süresi engeller).
+            Antrenörün "Angart", "Hazır" ve "Başlayın" komutları arasında en az <strong>Yarım Saniye (0.5 sn)</strong> beklemesi yeterlidir.<br><br>
+            <i>Not: Eğer sistem sesinizi hiç algılamıyorsa, aşağıdan doğru mikrofonu seçtiğinize emin olun.</i>
         </p>
-        <button id="start-btn" onclick="initAudioSync(); startApp();">🎤 MİKROFONU AÇ</button>
+        
+        <div id="mic-selector-container">
+            <select id="mic-select">
+                <option value="">🎤 Varsayılan Mikrofon (İzin İsteniyor...)</option>
+            </select>
+        </div>
+
+        <button id="start-btn" onclick="initAudioSync(); startApp();">🎤 BAŞLAT</button>
     </div>
 
     <div id="main-screen" class="hidden">
@@ -146,7 +157,7 @@ component_html = f"""
         </div>
 
         <div id="instruction">
-            Komutlar arasında en az 0.5 sn bekleyin | Ölçümü durdurmak için <strong>Ekrana Tıklayın / SPACE</strong>
+            Komutlar arasında en az 0.5 sn bekleyin | Ölçümü durdurmak için <strong>SPACE</strong>
         </div>
     </div>
 </div>
@@ -163,7 +174,7 @@ component_html = f"""
     let measureCount=0; 
     let allResults=[];
     
-    // Cooldown mekanizması (yankıyı ve aynı kelimenin 2 kez algılanmasını önler)
+    // Cooldown mekanizması
     let isCooldown = false;
     const COOLDOWN_MS = 500; // Komutlar arası zorunlu bekleme süresi (Yarım saniye)
 
@@ -174,6 +185,37 @@ component_html = f"""
     const $flash=document.getElementById('flash'), $app=document.getElementById('app');
     const $s1=document.getElementById('s1'), $s2=document.getElementById('s2'), $s3=document.getElementById('s3');
     const $micFill=document.getElementById('mic-fill'), $volText=document.getElementById('vol-text');
+    const $micSelect=document.getElementById('mic-select');
+
+    // Mikrofonları Listeleme
+    async function populateMics() {{
+        try {{
+            // İzin istemek için kısa bir stream alıp kapatıyoruz
+            const tempStream = await navigator.mediaDevices.getUserMedia({{audio: true}});
+            tempStream.getTracks().forEach(track => track.stop());
+            
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioInputs = devices.filter(device => device.kind === 'audioinput');
+            
+            $micSelect.innerHTML = '';
+            if(audioInputs.length === 0) {{
+                $micSelect.innerHTML = '<option value="">Mikrofon Bulunamadı!</option>';
+            }} else {{
+                audioInputs.forEach((device, index) => {{
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Mikrofon ${{index + 1}}`;
+                    $micSelect.appendChild(option);
+                }});
+            }}
+        }} catch(e) {{
+            console.warn("Mikrofon listesi alınamadı:", e);
+            $micSelect.innerHTML = '<option value="">Mikrofon izinleri reddedildi veya cihaz yok.</option>';
+        }}
+    }}
+
+    // Sayfa yüklendiğinde mikrofonları getir
+    window.addEventListener('load', populateMics);
 
     // Senkron başlatma (Tarayıcıların mikrofonu sessize almasını engeller)
     function initAudioSync() {{
@@ -185,16 +227,13 @@ component_html = f"""
     async function startApp() {{
         initAudioSync();
 
+        const deviceId = $micSelect.value;
+        const constraints = deviceId ? {{ audio: {{ deviceId: {{ exact: deviceId }} }} }} : {{ audio: true }};
+
         try {{
-            micStream = await navigator.mediaDevices.getUserMedia({{
-                audio: {{
-                    echoCancellation: false,
-                    noiseSuppression: false,
-                    autoGainControl: true
-                }}
-            }});
+            micStream = await navigator.mediaDevices.getUserMedia(constraints);
         }} catch(e) {{
-            alert('Mikrofon erişimi reddedildi! Tarayıcı ayarlarından izin verin.');
+            alert('Mikrofon erişimi reddedildi veya seçili mikrofon kullanılamıyor! Lütfen izin verdiğinizden emin olun.');
             return;
         }}
 
@@ -252,7 +291,6 @@ component_html = f"""
 
     function triggerCooldown() {{
         isCooldown = true;
-        // Kırmızı barı veya durumu göstererek sistemin kilitli olduğunu hissettirebiliriz
         setTimeout(() => {{
             isCooldown = false;
             // Cooldown bittiğinde UI'ı güncelleyebiliriz
@@ -261,7 +299,7 @@ component_html = f"""
                 $status.style.color = '#00FF88';
                 $s2.className = 'step ready';
             }} else if (currentStep === 2) {{
-                $status.textContent = '🟢 Bekleme bitti. "Başlayın!" diyebilirsiniz (Anında).';
+                $status.textContent = '🟢 Bekleme bitti. "Başlayın!" diyebilirsiniz.';
                 $status.style.color = '#00FF88';
                 $s3.className = 'step ready';
             }}
@@ -274,7 +312,7 @@ component_html = f"""
         $s2.className = 'step waiting';
         $phase.textContent = '⚔️ ANGART';
         $phase.className = 'engarde';
-        $status.textContent = '⏳ Yankı/Nefes bekleniyor (' + (COOLDOWN_MS/1000).toFixed(1) + ' sn)';
+        $status.textContent = '⏳ ' + (COOLDOWN_MS/1000).toFixed(1) + ' sn bekleme...';
         $status.style.color = '#FF9100';
         doFlash('#ffffff', 0.1);
         triggerCooldown();
@@ -286,7 +324,7 @@ component_html = f"""
         $s3.className = 'step waiting';
         $phase.textContent = '🟡 HAZIR';
         $phase.className = 'prets';
-        $status.textContent = '⏳ Yankı/Nefes bekleniyor (' + (COOLDOWN_MS/1000).toFixed(1) + ' sn)';
+        $status.textContent = '⏳ ' + (COOLDOWN_MS/1000).toFixed(1) + ' sn bekleme...';
         $status.style.color = '#FF9100';
         doFlash('#FFC107', 0.15);
         triggerCooldown();
@@ -378,18 +416,17 @@ component_html = f"""
         }}
     }}, {{passive: false, capture: true}});
     
-    $app.addEventListener('click', () => {{ if(isRunning) stopChrono(); }});
     $app.focus();
 
     window.parent.postMessage({{isStreamlitMessage:true,type:'streamlit:componentReady',apiVersion:1}},'*');
-    window.parent.postMessage({{isStreamlitMessage:true,type:'streamlit:setFrameHeight',height:680}},'*');
+    window.parent.postMessage({{isStreamlitMessage:true,type:'streamlit:setFrameHeight',height:730}},'*');
 </script>
 </body>
 </html>
 """
 
 import streamlit.components.v1 as components
-components.html(component_html, height=680, scrolling=False)
+components.html(component_html, height=730, scrolling=False)
 
 st.markdown("---")
 if st.session_state.results:
