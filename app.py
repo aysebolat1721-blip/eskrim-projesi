@@ -240,7 +240,15 @@ component_html = f"""
         const source = audioCtx.createMediaStreamSource(micStream);
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
+        
+        // Safari/WebKit Bug Fix: Eğer destination'a bağlamazsak Safari sesi optimize edip 0 verir!
+        // Sesi dışarı vermemek için Gain = 0 yapıp öyle bağlıyoruz.
+        const silentNode = audioCtx.createGain();
+        silentNode.gain.value = 0;
+        
         source.connect(analyser);
+        analyser.connect(silentNode);
+        silentNode.connect(audioCtx.destination);
 
         $intro.classList.add('hidden');
         $main.classList.remove('hidden');
