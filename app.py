@@ -4,7 +4,6 @@ import datetime
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from io import BytesIO
 
 st.set_page_config(
     page_title="Eskrim Kılıç - Reaksiyon Kronometresi",
@@ -29,9 +28,10 @@ with st.sidebar:
     if name:
         st.session_state.athlete_name = name
     
-    st.markdown("### 🎤 'Başlayın' Komutu Hassasiyeti")
-    threshold = st.slider("Ses Eşiği", 0.01, 0.40, 0.05, 0.01,
-                          help="Bağırmadan normal sesle konuşmak için sola (0.02 - 0.05) çekin")
+    st.markdown("### 🎤 Hassasiyet (Ses Eşiği)")
+    st.caption("Komutların algılanması için gereken ses seviyesi.")
+    threshold = st.slider("Ses Eşiği", 0.01, 0.50, 0.10, 0.01,
+                          help="Bağırmadan normal sesle konuşmak için sola çekin")
     st.divider()
     if st.session_state.results:
         if st.button("🗑️ Temizle", use_container_width=True):
@@ -40,7 +40,7 @@ with st.sidebar:
 
 st.markdown("""<div style='text-align:center; padding: 0.3rem 0 0.8rem;'>
     <h1 style='font-size: 2rem; margin:0;'>⚔️ Kılıç Reaksiyon Kronometresi</h1>
-    <p style='color: #666; font-size: 0.85rem;'>Hibrit Sistem (Yapay Zeka Ses Tanıma + Anlık Kronometre)</p>
+    <p style='color: #666; font-size: 0.85rem;'>Saf Ses Şiddeti Sistemi (Yapay Zekasız, %100 Uyumlu)</p>
 </div>""", unsafe_allow_html=True)
 
 component_html = f"""
@@ -60,8 +60,7 @@ component_html = f"""
     #phase.allez{{color:#00FF88;text-shadow:0 0 80px rgba(0,255,136,0.5);}}
     #phase.stopped{{color:#00AAFF;text-shadow:0 0 40px rgba(0,170,255,0.3);}}
 
-    #status{{font-size:1rem;font-weight:600;color:#555;margin-top:0.8rem;letter-spacing:0.08em;transition:color 0.1s;}}
-    #recognized-text{{font-size:1.2rem; font-style:italic; color:#888; margin-top:0.5rem; height:1.5rem;}}
+    #status{{font-size:1.1rem;font-weight:600;color:#888;margin-top:1rem;letter-spacing:0.05em;}}
 
     #chrono{{font-family:'JetBrains Mono',monospace;font-size:5.5rem;font-weight:700;color:#222;margin-top:0.8rem;transition:color 0.1s,text-shadow 0.15s;}}
     #chrono.running{{color:#00FF88;text-shadow:0 0 60px rgba(0,255,136,0.35);}}
@@ -72,11 +71,14 @@ component_html = f"""
     #last-result{{margin-top:1rem;font-size:1rem;color:#555;min-height:1.5rem;}}
     #last-result .rt{{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.4rem;color:#00FF88;}}
 
-    #mic-sec{{margin-top:1.5rem;text-align:center;width:320px;}}
-    #mic-lbl{{font-size:0.7rem;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;}}
-    #mic-bg{{width:100%;height:14px;background:rgba(26,31,46,0.8);border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);}}
-    #mic-fill{{height:100%;width:0%;border-radius:7px;background:linear-gradient(90deg,#00FF88,#00AAFF);transition:width 0.03s linear;}}
-    #mic-fill.hot{{background:linear-gradient(90deg,#FF9100,#FF1744);}}
+    /* SES BAR STİLLERİ */
+    #mic-sec{{margin-top:1.5rem;text-align:center;width:400px;}}
+    #mic-lbl{{font-size:0.75rem;color:#666;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;display:flex;justify-content:space-between;}}
+    #mic-bg{{width:100%;height:20px;background:rgba(26,31,46,0.8);border-radius:10px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.1);}}
+    #mic-fill{{height:100%;width:0%;border-radius:10px;background:linear-gradient(90deg,#00AAFF,#00FF88);transition:width 0.05s linear;}}
+    
+    /* Eşik Çizgisi */
+    #threshold-line{{position:absolute;top:0;bottom:0;width:2px;background:red;z-index:2;box-shadow:0 0 5px red;}}
 
     #steps{{position:absolute;top:1.2rem;left:50%;transform:translateX(-50%);display:flex;gap:0.4rem;align-items:center;}}
     .step{{padding:0.35rem 1rem;border-radius:8px;font-size:0.8rem;font-weight:700;
@@ -90,8 +92,8 @@ component_html = f"""
     #counter{{position:absolute;top:1rem;right:1.5rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:#333;
         background:rgba(26,31,46,0.6);padding:0.4rem 0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.04);}}
 
-    #instruction{{position:absolute;bottom:1.5rem;font-size:0.78rem;color:#383838;text-align:center;line-height:1.6;}}
-    #instruction strong{{color:#555;}}
+    #instruction{{position:absolute;bottom:1.5rem;font-size:0.8rem;color:#444;text-align:center;line-height:1.6;}}
+    #instruction strong{{color:#777;}}
 
     #start-btn{{padding:1.2rem 3rem;font-size:1.2rem;font-weight:700;font-family:'Inter',sans-serif;
         background:linear-gradient(135deg,#00FF88,#00CC6A);color:#000;border:none;border-radius:16px;cursor:pointer;animation:pulse 2s ease-in-out infinite;}}
@@ -107,21 +109,18 @@ component_html = f"""
     <div id="flash"></div>
 
     <div id="intro">
-        <div style="font-size:3.5rem;margin-bottom:1rem;">🎤🤖</div>
-        <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Hibrit Sistem: Yapay Zeka + Sıfır Gecikme</p>
-        <p style="color:#888;margin-bottom:1.5rem;max-width:400px;text-align:center;line-height:1.8;font-size:0.9rem;">
-            Yanlış atlamaları önlemek için ilk iki komutu yapay zeka dinler:<br>
-            <strong style="color:#fff">1. "Angart!"</strong> → (Yapay zeka anlar)<br>
-            <strong style="color:#FFC107">2. "Hazır!"</strong> → (Yapay zeka anlar)<br>
-            <strong style="color:#00FF88">3. "Başlayın!"</strong> → ⏱️ Ses anında ölçülüp kronometre fırlar<br>
-            <strong style="color:#00AAFF">SPACE</strong> → durdur
+        <div style="font-size:3.5rem;margin-bottom:1rem;">🎙️⚡</div>
+        <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Ritmik Ses Sistemi</p>
+        <p style="color:#888;margin-bottom:1.5rem;max-width:420px;text-align:center;line-height:1.6;font-size:0.9rem;">
+            Yapay zekanın kilitlenmesini önlemek için <strong>%100 Ses Şiddeti</strong> sistemine geçildi.<br><br>
+            Antrenörün "Angart", "Hazır" ve "Başlayın" komutları arasında doğal olarak en az <strong>1.5 saniye</strong> beklemesi gereklidir. (Kendi kendine atlamayı bu bekleme süresi engeller).
         </p>
-        <button id="start-btn" onclick="startApp()">🎤 BAŞLAT</button>
+        <button id="start-btn" onclick="startApp()">🎤 MİKROFONU AÇ</button>
     </div>
 
     <div id="main-screen" class="hidden">
         <div id="steps">
-            <div class="step waiting" id="s1">EN GARDE</div>
+            <div class="step waiting" id="s1">ANGART</div>
             <div class="step-arrow">→</div>
             <div class="step" id="s2">HAZIR</div>
             <div class="step-arrow">→</div>
@@ -130,19 +129,25 @@ component_html = f"""
         <div id="counter">Ölçüm: <span id="cnt">0</span></div>
 
         <div id="phase">⚔️</div>
-        <div id="status">🎤 YZ Dinliyor: "Angart!" deyin...</div>
-        <div id="recognized-text"></div>
+        <div id="status">🎤 İlk komut için ses bekleniyor...</div>
+        
         <div id="chrono">0.000</div>
         <div id="unit">saniye</div>
         <div id="last-result"></div>
 
-        <div id="mic-sec" class="hidden">
-            <div id="mic-lbl">🎤 "Başlayın!" Sesi Bekleniyor <span id="vol-text" style="float:right; font-family:monospace; color:#aaa;">0.00</span></div>
-            <div id="mic-bg"><div id="mic-fill"></div></div>
+        <div id="mic-sec">
+            <div id="mic-lbl">
+                <span>Ses Seviyesi (Bağırdıkça dolar)</span>
+                <span id="vol-text" style="font-family:monospace; color:#aaa;">0.00</span>
+            </div>
+            <div id="mic-bg">
+                <div id="threshold-line" style="left: {threshold * 100}%"></div>
+                <div id="mic-fill"></div>
+            </div>
         </div>
 
         <div id="instruction">
-            Antrenör: <strong>Angart!</strong> → <strong>Hazır!</strong> → <strong>Başlayın!</strong> | Sporcu: <strong>SPACE</strong>
+            Komutlar arasında en az 1.5 sn bekleyin | Ölçümü durdurmak için <strong>SPACE</strong>
         </div>
     </div>
 </div>
@@ -150,269 +155,217 @@ component_html = f"""
 <script>
     const TH = {threshold};
     let audioCtx=null, analyser=null, micStream=null;
-    let currentStep=0, isRunning=false, startTime=0, chronoRAF=null;
-    let measureCount=0, allResults=[];
     
-    // Web Speech API
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = null;
-    let isRecognizing = false;
+    // State Machine
+    let currentStep=0; 
+    let isRunning=false; 
+    let startTime=0; 
+    let chronoRAF=null;
+    let measureCount=0; 
+    let allResults=[];
+    
+    // Cooldown mekanizması (yankıyı ve aynı kelimenin 2 kez algılanmasını önler)
+    let isCooldown = false;
+    const COOLDOWN_MS = 1500; // Komutlar arası zorunlu bekleme süresi
 
     const $intro=document.getElementById('intro'), $main=document.getElementById('main-screen');
     const $phase=document.getElementById('phase'), $status=document.getElementById('status');
-    const $recognized=document.getElementById('recognized-text');
     const $chrono=document.getElementById('chrono');
     const $lastResult=document.getElementById('last-result'), $cnt=document.getElementById('cnt');
     const $flash=document.getElementById('flash'), $app=document.getElementById('app');
     const $s1=document.getElementById('s1'), $s2=document.getElementById('s2'), $s3=document.getElementById('s3');
-    const $micSec=document.getElementById('mic-sec'), $micFill=document.getElementById('mic-fill');
+    const $micFill=document.getElementById('mic-fill'), $volText=document.getElementById('vol-text');
 
-    // ═══════════════════════════════
-    //  BAŞLAT
-    // ═══════════════════════════════
     async function startApp() {{
-        if(!SpeechRecognition) {{
-            alert("Tarayıcınız ses tanımayı (Web Speech API) desteklemiyor. Lütfen Chrome kullanın.");
-            return;
-        }}
-
-        // Audio Context (Allez komutu için)
-        const AC=window.AudioContext||window.webkitAudioContext;
-        audioCtx=new AC();
-        if(audioCtx.state==='suspended') await audioCtx.resume();
+        const AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+        if(audioCtx.state === 'suspended') await audioCtx.resume();
 
         try {{
-            micStream=await navigator.mediaDevices.getUserMedia({{audio:true}});
+            micStream = await navigator.mediaDevices.getUserMedia({{audio: true}});
         }} catch(e) {{
             alert('Mikrofon erişimi reddedildi! Tarayıcı ayarlarından izin verin.');
             return;
         }}
 
-        const source=audioCtx.createMediaStreamSource(micStream);
-        analyser=audioCtx.createAnalyser();
-        analyser.fftSize=256;
+        const source = audioCtx.createMediaStreamSource(micStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
         source.connect(analyser);
-
-        // Speech Recognition Setup (Angart & Pre için)
-        recognition = new SpeechRecognition();
-        recognition.lang = 'tr-TR';
-        recognition.continuous = true;
-        recognition.interimResults = true; // Hızlı tepki için geçici sonuçları da al
-
-        recognition.onstart = function() {{ 
-            isRecognizing = true; 
-            $status.style.color='#555';
-            $status.textContent='🎤 YZ Dinliyor: "' + (currentStep===0 ? 'Angart' : 'Hazır') + '!" deyin...';
-        }};
-        
-        recognition.onerror = function(event) {{
-            console.error("Speech error: " + event.error);
-            $recognized.textContent = "Hata: " + event.error;
-            isRecognizing = false;
-        }};
-
-        recognition.onend = function() {{ 
-            isRecognizing = false;
-            // Eğer hala 0 veya 1. adımda isek, tanımayı otomatik yeniden başlat
-            if(currentStep < 2) {{
-                setTimeout(() => {{
-                    try {{ recognition.start(); }} catch(e) {{}}
-                }}, 250);
-            }}
-        }};
-
-        recognition.onresult = function(event) {{
-            if(currentStep >= 2) return; // 2. adımdan sonra sese bakılır, kelimeye değil.
-
-            let transcript = '';
-            for(let i=event.resultIndex; i<event.results.length; i++) {{
-                transcript += event.results[i][0].transcript;
-            }}
-            
-            const lower = transcript.toLowerCase().trim();
-            $recognized.textContent = '"' + lower + '"'; // Ekrana söylenen kelimeyi yaz (debugging)
-
-            if(currentStep === 0) {{
-                // EN GARDE Kontrolü
-                const engardeWords = ['angart', 'angard', 'angar', 'ankart', 'en garde', 'on garde', 'on gard', 'ang'];
-                if(engardeWords.some(w => lower.includes(w))) {{
-                    goToStep1();
-                }}
-            }} 
-            
-            if(currentStep === 1) {{
-                // HAZIR Kontrolü
-                const hazirWords = ['hazır', 'hazir', 'hazar', 'hızır', 'hazr'];
-                if(hazirWords.some(w => lower.includes(w))) {{
-                    goToStep2();
-                }}
-            }}
-        }};
 
         $intro.classList.add('hidden');
         $main.classList.remove('hidden');
         $app.focus();
-        resetAll();
-    }}
-
-    // ═══════════════════════════════
-    //  ADIM 1: EN GARDE (Yapay Zeka Onayı)
-    // ═══════════════════════════════
-    function goToStep1() {{
-        currentStep = 1;
-        $s1.className='step done';
-        $s2.className='step waiting';
-        $phase.textContent='⚔️ EN GARDE';
-        $phase.className='engarde';
-        $status.textContent='✅ YZ Onayladı → Şimdi "Hazır!" deyin...';
-        $status.style.color='#aaa';
-        $recognized.textContent='';
-        doFlash('#ffffff',0.1);
-    }}
-
-    // ═══════════════════════════════
-    //  ADIM 2: HAZIR (Yapay Zeka Onayı) -> SES DİNLEMEYE GEÇİŞ
-    // ═══════════════════════════════
-    function goToStep2() {{
-        currentStep = 2;
-        $s2.className='step done';
-        $s3.className='step ready';
-        $phase.textContent='🟡 HAZIR';
-        $phase.className='prets';
-        $status.textContent='✅ YZ Onayladı → Şimdi bağırarak "Başlayın!" deyin (Anında Tetiklenir)';
-        $status.style.color='#FFC107';
-        $recognized.textContent='';
-        doFlash('#FFC107',0.12);
-
-        // Mikrofonu kapatmıyoruz (yoksa Ses dinleyici bozuluyor). 
-        // Sadece ses barını gösterip hemen dinlemeye başlıyoruz.
-        $micSec.classList.remove('hidden');
         
-        // Gecikmeyi kaldırdık: Anında sesi dinlemeye başlıyoruz
-        startAllezListener();
+        resetAll();
+        audioLoop(); // Mikrofonu sürekli dinle
     }}
 
-    // ═══════════════════════════════
-    //  ADIM 3 BEKLEYİŞİ: SAF SES ŞİDDETİ (ALLEZ İÇİN)
-    // ═══════════════════════════════
-    let audioRAF = null;
-    function startAllezListener() {{
-        const buf=new Uint8Array(analyser.frequencyBinCount);
-
+    function audioLoop() {{
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+        
         function tick() {{
-            if(currentStep !== 2) return; // Sadece 2. adımda çalışır
-
             analyser.getByteFrequencyData(buf);
-            let maxVal=0;
-            for(let i=0;i<buf.length;i++) {{
-                if(buf[i]>maxVal) maxVal=buf[i];
+            let maxVal = 0;
+            for(let i=0; i<buf.length; i++) {{
+                if(buf[i] > maxVal) maxVal = buf[i];
             }}
-            const avg = maxVal/255;
-            document.getElementById('vol-text').textContent = avg.toFixed(2);
+            const avg = maxVal / 255;
+            
+            // UI Güncelleme
+            $volText.textContent = avg.toFixed(2);
+            $micFill.style.width = Math.min(avg * 100, 100) + '%';
+            if(avg > TH) $micFill.style.background = 'linear-gradient(90deg,#FF9100,#FF1744)';
+            else $micFill.style.background = 'linear-gradient(90deg,#00AAFF,#00FF88)';
 
-            $micFill.style.width=Math.min(avg*500,100)+'%';
-            $micFill.classList.toggle('hot',avg>TH);
-
-            if(avg > TH && !isRunning) {{
-                // SES DUYULDU -> ANINDA KRONOMETRE
-                goToStep3();
-                return;
+            // Mantık
+            if(avg > TH && !isCooldown && !isRunning) {{
+                handleLoudSound();
             }}
-            audioRAF = requestAnimationFrame(tick);
+
+            requestAnimationFrame(tick);
         }}
         tick();
     }}
 
-    // ═══════════════════════════════
-    //  ADIM 3: ALLEZ & KRONOMETRE
-    // ═══════════════════════════════
+    function handleLoudSound() {{
+        if(currentStep === 0) {{
+            goToStep1();
+        }} 
+        else if(currentStep === 1) {{
+            goToStep2();
+        }} 
+        else if(currentStep === 2) {{
+            goToStep3();
+        }}
+    }}
+
+    function triggerCooldown() {{
+        isCooldown = true;
+        // Kırmızı barı veya durumu göstererek sistemin kilitli olduğunu hissettirebiliriz
+        setTimeout(() => {{
+            isCooldown = false;
+            // Cooldown bittiğinde UI'ı güncelleyebiliriz
+            if(currentStep === 1) {{
+                $status.textContent = '🟢 Bekleme bitti. "Hazır!" diyebilirsiniz.';
+                $status.style.color = '#00FF88';
+                $s2.className = 'step ready';
+            }} else if (currentStep === 2) {{
+                $status.textContent = '🟢 Bekleme bitti. "Başlayın!" diyebilirsiniz (Anında).';
+                $status.style.color = '#00FF88';
+                $s3.className = 'step ready';
+            }}
+        }}, COOLDOWN_MS);
+    }}
+
+    function goToStep1() {{
+        currentStep = 1;
+        $s1.className = 'step done';
+        $s2.className = 'step waiting';
+        $phase.textContent = '⚔️ ANGART';
+        $phase.className = 'engarde';
+        $status.textContent = '⏳ Yankı/Nefes bekleniyor (' + (COOLDOWN_MS/1000).toFixed(1) + ' sn)';
+        $status.style.color = '#FF9100';
+        doFlash('#ffffff', 0.1);
+        triggerCooldown();
+    }}
+
+    function goToStep2() {{
+        currentStep = 2;
+        $s2.className = 'step done';
+        $s3.className = 'step waiting';
+        $phase.textContent = '🟡 HAZIR';
+        $phase.className = 'prets';
+        $status.textContent = '⏳ Yankı/Nefes bekleniyor (' + (COOLDOWN_MS/1000).toFixed(1) + ' sn)';
+        $status.style.color = '#FF9100';
+        doFlash('#FFC107', 0.15);
+        triggerCooldown();
+    }}
+
     function goToStep3() {{
         currentStep = 3;
         isRunning = true;
         startTime = performance.now();
 
-        $s3.className='step done';
-        $phase.textContent='🟢 BAŞLAYIN!';
-        $phase.className='allez';
-        $status.textContent='⏱️ SPACE BAS!';
-        $status.style.color='#00FF88';
-        $chrono.className='running';
-        doFlash('#00FF88',0.2);
+        $s3.className = 'step done';
+        $phase.textContent = '🟢 BAŞLAYIN!';
+        $phase.className = 'allez';
+        $status.textContent = '⏱️ SPACE BAS!';
+        $status.style.color = '#00FF88';
+        $chrono.className = 'running';
+        doFlash('#00FF88', 0.25);
 
         function chronoTick() {{
             if(!isRunning) return;
-            $chrono.textContent=((performance.now()-startTime)/1000).toFixed(3);
-            chronoRAF=requestAnimationFrame(chronoTick);
+            $chrono.textContent = ((performance.now()-startTime)/1000).toFixed(3);
+            chronoRAF = requestAnimationFrame(chronoTick);
         }}
         chronoTick();
     }}
 
-    // ═══════════════════════════════
-    //  SPACE → KRONOMETREYİ DURDUR
-    // ═══════════════════════════════
     function stopChrono() {{
         if(!isRunning) return;
-        const elapsed=performance.now()-startTime;
-        isRunning=false;
+        const elapsed = performance.now() - startTime;
+        isRunning = false;
         if(chronoRAF) cancelAnimationFrame(chronoRAF);
 
-        const sec=(elapsed/1000).toFixed(3);
-        const ms=elapsed.toFixed(1);
-        $chrono.textContent=sec;
-        $chrono.className='stopped';
-        $phase.textContent='✅ '+ms+' ms';
-        $phase.className='stopped';
-        $status.textContent='Kaydedildi! 2 sn sonra yeni döngü...';
-        $status.style.color='#00AAFF';
-        doFlash('#00AAFF',0.15);
+        const sec = (elapsed/1000).toFixed(3);
+        const ms = elapsed.toFixed(1);
+        $chrono.textContent = sec;
+        $chrono.className = 'stopped';
+        $phase.textContent = '✅ ' + ms + ' ms';
+        $phase.className = 'stopped';
+        
+        $status.textContent = 'Kaydedildi! 2 sn sonra yeni döngü...';
+        $status.style.color = '#00AAFF';
+        doFlash('#00AAFF', 0.2);
 
         measureCount++;
-        $cnt.textContent=measureCount;
-        $lastResult.innerHTML='Son: <span class="rt">'+ms+' ms</span>';
+        $cnt.textContent = measureCount;
+        $lastResult.innerHTML = 'Son: <span class="rt">' + ms + ' ms</span>';
 
-        allResults.push({{number:measureCount,reaction_time_ms:parseFloat(ms),timestamp:Date.now()}});
+        allResults.push({{number:measureCount, reaction_time_ms:parseFloat(ms), timestamp:Date.now()}});
 
         window.parent.postMessage({{
-            isStreamlitMessage:true,type:'streamlit:setComponentValue',
-            value:{{status:'RESULT',count:measureCount,reaction_time_ms:parseFloat(ms),all_results:allResults}}
+            isStreamlitMessage:true, type:'streamlit:setComponentValue',
+            value:{{status:'RESULT', count:measureCount, reaction_time_ms:parseFloat(ms), all_results:allResults}}
         }},'*');
 
         setTimeout(resetAll, 2000);
     }}
 
-    // ═══════════════════════════════
-    //  YARDIMCI / RESET
-    // ═══════════════════════════════
     function resetAll() {{
-        currentStep=0;
-        isRunning=false;
-        $s1.className='step waiting'; $s2.className='step'; $s3.className='step';
-        $phase.textContent='⚔️'; $phase.className='';
-        $chrono.textContent='0.000'; $chrono.className='';
-        $status.textContent='🎤 YZ Dinliyor: "Angart!" deyin...'; $status.style.color='#555';
-        $recognized.textContent='';
-        $lastResult.innerHTML='';
-        $micSec.classList.add('hidden'); // Ses barını gizle
-        $micFill.style.width='0%';
-        document.getElementById('vol-text').textContent='0.00';
-
-        // Yapay zekayı tekrar başlat (kapalıysa)
-        if(!isRecognizing && recognition) {{
-            try {{ recognition.start(); }} catch(e) {{}}
-        }}
+        currentStep = 0;
+        isRunning = false;
+        isCooldown = false;
+        
+        $s1.className = 'step waiting'; 
+        $s2.className = 'step'; 
+        $s3.className = 'step';
+        
+        $phase.textContent = '⚔️'; 
+        $phase.className = '';
+        
+        $chrono.textContent = '0.000'; 
+        $chrono.className = '';
+        
+        $status.textContent = '🎤 "Angart" diyebilirsiniz...'; 
+        $status.style.color = '#555';
+        $lastResult.innerHTML = '';
     }}
 
-    function doFlash(hex,a){{
-        const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
-        $flash.style.background='rgba('+r+','+g+','+b+','+a+')';
-        $flash.style.opacity='1';
-        setTimeout(()=>{{$flash.style.opacity='0';}},200);
+    function doFlash(hex,a) {{
+        const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        $flash.style.background = 'rgba('+r+','+g+','+b+','+a+')';
+        $flash.style.opacity = '1';
+        setTimeout(() => {{ $flash.style.opacity = '0'; }}, 200);
     }}
 
-    document.addEventListener('keydown',(e)=>{{
-        if(e.code==='Space'||e.code==='Enter'){{e.preventDefault();if(!e.repeat)stopChrono();}}
-    }},{{passive:false,capture:true}});
-    $app.addEventListener('click',()=>{{if(isRunning)stopChrono();}});
+    document.addEventListener('keydown', (e) => {{
+        if(e.code === 'Space' || e.code === 'Enter') {{ e.preventDefault(); if(!e.repeat) stopChrono(); }}
+    }}, {{passive: false, capture: true}});
+    
+    $app.addEventListener('click', () => {{ if(isRunning) stopChrono(); }});
     $app.focus();
 
     window.parent.postMessage({{isStreamlitMessage:true,type:'streamlit:componentReady',apiVersion:1}},'*');
@@ -445,4 +398,4 @@ if st.session_state.results:
     athlete=st.session_state.athlete_name or "sporcu"
     st.download_button("📥 CSV İndir",csv,f"kilicRT_{athlete}_{ts}.csv","text/csv",use_container_width=True)
 else:
-    st.info("👆 Başlat → 1. yapay zeka: Angart → 2. yapay zeka: Hazır → 3. anlık ses: Başlayın! ⏱️ → SPACE")
+    st.info("👆 Başlat → 1. Angart → (1.5sn bekle) → 2. Hazır → (1.5sn bekle) → 3. Başlayın! ⏱️ → SPACE")
