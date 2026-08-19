@@ -112,7 +112,7 @@ component_html = f"""
         <div style="font-size:3.5rem;margin-bottom:1rem;">🎙️⚡</div>
         <p style="color:#ccc;margin-bottom:0.5rem;font-size:1.1rem;font-weight:600;">Ritmik Ses Sistemi</p>
         <p style="color:#888;margin-bottom:1.5rem;max-width:420px;text-align:center;line-height:1.6;font-size:0.9rem;">
-            Yapay zekanın kilitlenmesini önlemek için <strong>%100 Ses Şiddeti</strong> sistemine geçildi.<br><br>
+            Antrenörün "Angart", "Hazır" ve "Başlayın" komutları arasında doğal olarak en az <strong>Yarım Saniye (0.5 sn)</strong> beklemesi gereklidir. (Kendi kendine atlamayı bu bekleme süresi engeller).<br><br>
             <strong>ACİL DURUM:</strong> Mikrofonunuz tamamen donduysa, komutları sesle vermek yerine <strong>EKRANA TIKLAYARAK</strong> (veya telefondan ekrana dokunarak) tıkır tıkır ilerleyebilirsiniz!
         </p>
         <button id="start-btn" onclick="initAudioSync(); startApp();">🎤 MİKROFONU AÇ</button>
@@ -147,7 +147,7 @@ component_html = f"""
         </div>
 
         <div id="instruction">
-            Komutlar arasında en az 1.5 sn bekleyin | Ölçümü durdurmak için <strong>Ekrana Tıklayın / SPACE</strong>
+            Komutlar arasında en az 0.5 sn bekleyin | Ölçümü durdurmak için <strong>Ekrana Tıklayın / SPACE</strong>
         </div>
     </div>
 </div>
@@ -166,7 +166,7 @@ component_html = f"""
     
     // Cooldown mekanizması (yankıyı ve aynı kelimenin 2 kez algılanmasını önler)
     let isCooldown = false;
-    const COOLDOWN_MS = 1500; // Komutlar arası zorunlu bekleme süresi
+    const COOLDOWN_MS = 500; // Komutlar arası zorunlu bekleme süresi (Yarım saniye)
 
     const $intro=document.getElementById('intro'), $main=document.getElementById('main-screen');
     const $phase=document.getElementById('phase'), $status=document.getElementById('status');
