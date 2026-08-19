@@ -186,13 +186,7 @@ component_html = f"""
         initAudioSync();
 
         try {{
-            micStream = await navigator.mediaDevices.getUserMedia({{
-                audio: {{
-                    echoCancellation: false,
-                    noiseSuppression: false,
-                    autoGainControl: true
-                }}
-            }});
+            micStream = await navigator.mediaDevices.getUserMedia({{audio: true}});
         }} catch(e) {{
             alert('Mikrofon erişimi reddedildi! Tarayıcı ayarlarından izin verin.');
             return;
