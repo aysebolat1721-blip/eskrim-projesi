@@ -242,7 +242,7 @@ component_html = f"""
             }} 
             else if(currentStep === 1) {{
                 // PRETS Kontrolü
-                const pretsWords = ['pre', 'pire', 'prêts', 'pret', 'pıre', 'prey', 'pr', 'pir', 'pır'];
+                const pretsWords = ['pre', 'pire', 'prêts', 'pret', 'pıre', 'prey', 'pr', 'pir', 'pır', 'bre', 'bire', 'kre', 'püre', 'pe', 're'];
                 if(pretsWords.some(w => lower.includes(w))) {{
                     goToStep2();
                 }}
@@ -268,6 +268,9 @@ component_html = f"""
         $status.style.color='#aaa';
         $recognized.textContent='';
         doFlash('#ffffff',0.1);
+
+        // Eski kelimelerin ("Angart") hafızadan silinmesi için yapay zekayı durdurup başlatıyoruz
+        if(isRecognizing) recognition.stop();
     }}
 
     // ═══════════════════════════════
