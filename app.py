@@ -115,7 +115,7 @@ component_html = f"""
             Yapay zekanın kilitlenmesini önlemek için <strong>%100 Ses Şiddeti</strong> sistemine geçildi.<br><br>
             <strong>ACİL DURUM:</strong> Mikrofonunuz tamamen donduysa, komutları sesle vermek yerine <strong>EKRANA TIKLAYARAK</strong> (veya telefondan ekrana dokunarak) tıkır tıkır ilerleyebilirsiniz!
         </p>
-        <button id="start-btn" onclick="startApp()">🎤 MİKROFONU AÇ</button>
+        <button id="start-btn" onclick="initAudioSync(); startApp();">🎤 MİKROFONU AÇ</button>
     </div>
 
     <div id="main-screen" class="hidden">
@@ -176,13 +176,24 @@ component_html = f"""
     const $s1=document.getElementById('s1'), $s2=document.getElementById('s2'), $s3=document.getElementById('s3');
     const $micFill=document.getElementById('mic-fill'), $volText=document.getElementById('vol-text');
 
-    async function startApp() {{
+    // Senkron başlatma (Tarayıcıların mikrofonu sessize almasını engeller)
+    function initAudioSync() {{
         const AC = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AC();
-        if(audioCtx.state === 'suspended') await audioCtx.resume();
+        if(!audioCtx) audioCtx = new AC();
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+    }}
+
+    async function startApp() {{
+        initAudioSync();
 
         try {{
-            micStream = await navigator.mediaDevices.getUserMedia({{audio: true}});
+            micStream = await navigator.mediaDevices.getUserMedia({{
+                audio: {{
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: true
+                }}
+            }});
         }} catch(e) {{
             alert('Mikrofon erişimi reddedildi! Tarayıcı ayarlarından izin verin.');
             return;
