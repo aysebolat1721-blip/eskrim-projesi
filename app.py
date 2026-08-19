@@ -30,9 +30,8 @@ with st.sidebar:
         st.session_state.athlete_name = name
     
     st.markdown("### 🎤 'Başlayın' Komutu Hassasiyeti")
-    st.caption("İlk iki komut yapay zeka ile anlaşıldıktan sonra, kronometreyi başlatacak sesin yüksekliği.")
-    threshold = st.slider("Ses Eşiği", 0.05, 0.80, 0.15, 0.05,
-                          help="Çok hassas ise sağa (0.50+), zor algılıyorsa sola çekin")
+    threshold = st.slider("Ses Eşiği", 0.01, 0.40, 0.05, 0.01,
+                          help="Bağırmadan normal sesle konuşmak için sola (0.02 - 0.05) çekin")
     st.divider()
     if st.session_state.results:
         if st.button("🗑️ Temizle", use_container_width=True):
