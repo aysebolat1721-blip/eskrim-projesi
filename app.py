@@ -134,7 +134,7 @@ component_html = f"""
         <div id="last-result"></div>
 
         <div id="mic-sec">
-            <div id="mic-lbl">🎤 Ses Seviyesi <span id="ready-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#555;margin-left:5px;" title="Yeni komut duymaya hazır"></span></div>
+            <div id="mic-lbl">🎤 Ses Seviyesi <span id="ready-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#555;margin-left:5px;" title="Yeni komut duymaya hazır"></span> <span id="vol-text" style="float:right; font-family:monospace; color:#aaa;">0.00</span></div>
             <div id="mic-bg"><div id="mic-fill"></div></div>
         </div>
 
@@ -208,6 +208,7 @@ component_html = f"""
                 if(buf[i]>maxVal) maxVal=buf[i];
             }}
             const avg = maxVal/255; // Artık ortalama değil, TEPE (Peak) ses şiddeti
+            document.getElementById('vol-text').textContent = avg.toFixed(2);
 
             // Ses çubuğu güncelle
             $micFill.style.width=Math.min(avg*500,100)+'%';
@@ -247,7 +248,7 @@ component_html = f"""
             $status.textContent='✅ → Şimdi "Pre!" deyin...';
             $status.style.color='#aaa';
             doFlash('#ffffff',0.1);
-            briefCD(800);
+            briefCD(400);
         }}
         else if(currentStep===1) {{
             // ── 2. SES → PRÊTS ──
@@ -259,7 +260,7 @@ component_html = f"""
             $status.textContent='✅ → Şimdi "Ale!" deyin...';
             $status.style.color='#FFC107';
             doFlash('#FFC107',0.12);
-            briefCD(800);
+            briefCD(400);
         }}
         else if(currentStep===2) {{
             // ── 3. SES → ALLEZ! + KRONOMETREYİ ANINDA BAŞLAT ──
