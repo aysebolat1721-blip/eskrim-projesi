@@ -30,8 +30,8 @@ with st.sidebar:
     
     st.markdown("### 🎤 Hassasiyet (Ses Eşiği)")
     st.caption("Komutların algılanması için gereken ses seviyesi.")
-    threshold = st.slider("Ses Eşiği", 0.01, 0.50, 0.10, 0.01,
-                          help="Bağırmadan normal sesle konuşmak için sola çekin")
+    threshold = st.slider("Ses Eşiği", 0.01, 0.50, 0.02, 0.01,
+                          help="Fısıldayarak bile konuşsanız algılaması için 0.02'ye ayarlandı")
     st.divider()
     if st.session_state.results:
         if st.button("🗑️ Temizle", use_container_width=True):
@@ -137,7 +137,7 @@ component_html = f"""
 
         <div id="mic-sec">
             <div id="mic-lbl">
-                <span>Ses Seviyesi (Bağırdıkça dolar)</span>
+                <span>Ses Seviyesi (Konuştukça dolar)</span>
                 <span id="vol-text" style="font-family:monospace; color:#aaa;">0.00</span>
             </div>
             <div id="mic-bg">
