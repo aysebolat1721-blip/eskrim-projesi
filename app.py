@@ -204,13 +204,13 @@ component_html = """
             $aiTranscript.textContent = currentText || "...";
 
             // KELİME KONTROLÜ
-            if(currentStep === 0 && (currentText.includes('angart') || currentText.includes('angar') || currentText.includes('on gard') || currentText.includes('en garde'))) {
+            if(currentStep === 0 && (currentText.includes('angart') || currentText.includes('angar') || currentText.includes('ang') || currentText.includes('ank') || currentText.includes('on gard') || currentText.includes('en garde'))) {
                 goToStep1();
             }
-            else if(currentStep === 1 && (currentText.includes('hazır') || currentText.includes('hazar') || currentText.includes('pre') || currentText.includes('prêt'))) {
+            else if(currentStep === 1 && (currentText.includes('hazır') || currentText.includes('hazar') || currentText.includes('hazı') || currentText.includes('hızır') || currentText.includes('pre') || currentText.includes('prêt') || currentText.includes('pire'))) {
                 goToStep2();
             }
-            else if(currentStep === 2 && (currentText.includes('başla') || currentText.includes('başlayın') || currentText.includes('allez'))) {
+            else if(currentStep === 2 && (currentText.includes('başla') || currentText.includes('baş') || currentText.includes('allez') || currentText.includes('ale') || currentText.includes('ali'))) {
                 goToStep3();
             }
         };
