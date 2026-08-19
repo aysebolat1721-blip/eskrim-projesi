@@ -215,7 +215,11 @@ component_html = f"""
             $micFill.classList.toggle('hot',avg>TH);
 
             // Ses düştüyse bayrak sıfırla (yeni komut algılayabilmek için)
-            if(avg<TH*0.80) {{
+            // Ortam gürültüsüne karşı daha toleranslı bir sıfırlama eşiği:
+            let resetThresh = Math.min(TH * 0.60, TH - 0.05);
+            if (resetThresh < 0.02) resetThresh = 0.02;
+
+            if(avg < resetThresh) {{
                 soundWasLow=true;
                 document.getElementById('ready-dot').style.background = '#00FF88'; // Hazır
             }} else {{
